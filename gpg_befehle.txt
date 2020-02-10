@@ -1,0 +1,184 @@
+	--------   Hinweis  -----------
+Suchstring kann sein:
+- Fingerabdruck (kurz, lang, komplett)
+- uid Name des Schlüsselinhabers
+- uid Email-Adresse des Schlüsselinhabers
+
+-a (-- armor)    Create  ASCII  armored  output.
+The  default  is to create the binary OpenPGP format.
+
+Bei mehreren privaten Schlüsseln kann mit -u UID
+oder --local-user ein spezieller Schlüssel ausgewählt werden
+
+--default-key KeyID setzt den privaten Standardschlüssel
+
+Mit -r UID oder --recipient UID wird der Empfänger ausgewählt
+
+Schlüsselflags:
+
+PUBKEY_USAGE_SIG = S (Signieren)
+PUBKEY_USAGE_CERT = C (Zertif./Beglaubigen)
+PUBKEY_USAGE_ENC = E (Verschl./Entschlüsseln)
+PUBKEY_USAGE_AUTH = A (Authentisierung)
+
+gpg --ask-cert-level aktiviert Signatur-Typen
+
+
+
+	-------------- Ende -------------
+			+++
+	----Schlüsselhandling----
+
+gpg --search-keys 'Jens Kubieziel'
+Sucht Schlüssel auf Keyserver
+
+gpg --list-keys Suchstring
+Sucht und listet lokale offentl. Schlüssel (hier von Suchstring)
+
+gpg --fingerprint
+Zeigt die Fingerabdrücke eines, oder aller Schlüssel an
+
+Verlängerung der Schlüsselgültigkeit
+1: >>gpg --edit-key<<
+2: Unterschlüssel mit >>key (0-n)<< wählen
+3: >>expire<<
+
+gpg --list-secret-keys
+Sucht und listet private Schlüssel
+
+gpg --edit-key Suchstring (gibt auskunft über die Schlüsselflags)
+addkey -> erstellt neuen Unterschlussel
+
+gpg --fingerprint
+Zeigt alle Schlüssel mit komplettem Fingerabdruck an
+
+gpg --full-gen-key --expert
+Erstelle Primär und/oder Unterschlüssel, expert erlaubt setzen der Schlüsselflags
+
+gpg --output revoke.asc --gen-revoke 79E0D914
+Erstelle Widerrufszertifikat für z.B. Schlüssel 79E0D914
+
+Schlüssel widerrufen in 2 Schritten:
+gpg --import ~/.gnupg/revoke.asc (1. Schlüssel lokal wiederrufen)
+gpg --send-keys Schlüssel-ID	(2. Schlüssel global widerrufen)
+
+gpg --delete-key ID (löscht einen öffentlichen Schlüssel)
+gpg --delete-secret-key ID (löscht einen privaten Schlüssel)
+
+gpg --refresh-keys
+lokalen Schlüsselbund aus dem öffentlichen Schlüsselserver aktualisieren
+
+uid widerrufen:
+1. gpg --edit-key ...key...
+2. wähle die passende uid: uid ...uid...
+3. revuid
+
+
+
+	-------------- Ende -------------
+			+++
+	-----------Import/Export---------
+
+
+gpg --armor --export 79E0D914 > oeff_Schl.txt
+exportiert alle(auch UID und Sub) öffentlichen Schlüssel in eine Datei
+
+gpg --export-secret-key 79E0D914 -a > secret.key
+geheimen Schlüssel in die Datei secret.key exportieren
+
+gpg --export-secret-subkey(s)
+exportiert nur einen bestimmten geheimen subkey
+
+gpg [--keyserver URL] --send-keys 0x92CFDAD95A2EEAA6
+exportiere Schlüssel auf Key-Server
+
+Alternative:
+gpg --send-keys AC57182E
+exportiere Schlüssel auf auf hkp://keys.gnupg.net
+
+gpg --import datei
+lokaler Schlüsselimport
+
+gpg --keyserver wwwkeys.pgp.net --recv-key 9438766F
+importiert Schlüssel 9438766F
+
+
+	-------------- Ende -------------
+			+++
+	----- Ver- und Entschlüsseln ----
+
+
+gpg --recipient(-r) Suchstring --encrypt datei.txt
+Verschlüsselt eine Datei mit einem öffentlichen Schlüssel
+(Schlüsselbund erfd., Original bleibt unverschlüsselt erhalten)
+
+gpg --decrypt datei.txt.gpg
+Entschlüsselt eine Datei mit dem eig. priv. Schlüssel
+(Schlüsselbund erford.)
+
+gpg -c example.txt
+schnelles symmetrisches Verschlüsseln, kein Schlüsselbund erford.
+(Passwortvergabe erford.)
+
+gpg -d example.txt.gpg
+schnelles symmetrisches Entschlüsseln, kein Schlüsselbund erford.
+(Passwort erford.)
+
+
+	-------------- Ende -------------
+			+++
+	----- Signieren und Signaturen prüfen ----
+
+
+gpg --list-sig
+Listet alle Signaturen und Schlüssel
+
+gpg [-u fingerabdruck] --sign-key 0xID (Signiert einen anderen Schlüssel(VORSICHT !!!))
+siehe hier auch --ask-cert-level !
+
+gpg -s datei.txt
+Unterschreibt und komprimiert eine Datei mit dem eig. privaten Schlüssel
+
+gpg --clearsign datei.txt
+Unterschreibt eine Datei mit dem eig. privaten Schlüssel (noch lesbar)
+
+gpg -b (oder --detach-sign) -a(optional) datei.txt
+erzeugt eine Unterschrift in einer separaten Datei (z.B. zum signieren von Binärdateien)
+
+gpg --verify datei.txt Prüft eine Signatur (öffentlicher Schlüssel muss vorhanden sein)
+
+
+
+
+
+Alternatives Vorgehen beim Signieren(am Beispiel 0xDEADBEEF):
+(wieder VORSICHT !!!)
+
+1)gpg --keyserver keyring.debian.org --recv-keys 0xDEADBEEF
+2)gpg --edit-key 0xDEADBEEF
+3)UIDs auswählen (uid n, Enter drücken für alle uids)
+4)sign
+5)quit
+6)Prüfen: gpg --list-sigs 0xDEADBEEF
+7)gpg --export -a 0xDEADBEEF > someguys.key
+
+Wurde der eig. Schlüssel so signiert, dann kann er wie folgt akt. werden:
+gpg --import --import-options merge-only mysigned.key
+gpg --keyserver keyring.debian.org --send-keys <Ihre Schlüssel-ID>
+
+
+manuelle Prüfsummen berechnen:
+
+printf "Die Prüfsumme des Satzes:" | gpg --print-md MD5
+printf "Die Prüfsumme des Satzes:" | gpg --print-md SHA1
+printf "Die Prüfsumme des Satzes:" | gpg --print-md SHA256
+
+[lux@x60 ~]$ gpg --keyserver wwwkeys.pgp.net --recv-key 9438766F
+gpg: Schlüssel 9438766F: Öffentlicher Schlüssel "Johannes Waldmann <johannes.waldmann@htwk-leipzig.de>" importiert
+gpg: 3 marginal-needed, 1 complete-needed, PGP Vertrauensmodell
+gpg: Tiefe: 0  gültig:   1  signiert:   0  Vertrauen: 0-, 0q, 0n, 0m, 0f, 1u
+gpg: nächste "Trust-DB"-Pflichtüberprüfung am 2016-07-03
+gpg: Anzahl insgesamt bearbeiteter Schlüssel: 1
+gpg:                              importiert: 1
+[lux@x60 ~]$
+
